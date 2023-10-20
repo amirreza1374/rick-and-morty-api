@@ -1,35 +1,75 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+import CharacterDetail from "./components/CharacterDetail";
+import CharacterList from "./components/CharacterList";
+import Navbar, { Favourites, Search, SearchResult } from "./components/Navbar";
+import { Toaster } from "react-hot-toast";
+import useCharacters from "./hooks/useCharacter";
+import useLocalStorage from "./hooks/useLocalStorage";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [query, setQuery] = useState("");
+  const [count, setCount] = useState(0);
+  const { characters, isLoading } = useCharacters(
+    "https://rickandmortyapi.com/api/character/?name",
+    query
+  );
+  const [selectedId, setSelectedId] = useState(null);
+  const [favourites, setFavourites] = useLocalStorage("FAVOURITES", []);
+
+  useEffect(() => {
+    const interval = setInterval(() => setCount((c) => c + 1), 1000);
+    // return function(){}
+    return () => {
+      clearInterval(interval);
+    };
+  }, [count]);
+ 
+
+  const handleSelectCharacter = (id) => {
+    setSelectedId((prevId) => (prevId === id ? null : id));
+  };
+
+  const handleAddFavourite = (char) => {
+    setFavourites((preFav) => [...preFav, char]);
+  };
+
+  const handleDeleteFavourite = (id) => {
+    setFavourites((preFav) => preFav.filter((fav) => fav.id !== id));
+  };
+
+  const isAddToFavourite = favourites.map((fav) => fav.id).includes(selectedId);
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="app">
+      <Toaster />
+      <Navbar>
+        <Search query={query} setQuery={setQuery} />
+        <SearchResult numOfResult={characters.length} />
+        <Favourites
+          favourites={favourites}
+          onDeleteFavourite={handleDeleteFavourite}
+        />
+      </Navbar>
+      <Main>
+        <CharacterList
+          selectedId={selectedId}
+          characters={characters}
+          isLoading={isLoading}
+          onSelectCharacter={handleSelectCharacter}
+        />
+        <CharacterDetail
+          selectedId={selectedId}
+          onAddFavourite={handleAddFavourite}
+          isAddToFavourite={isAddToFavourite}
+        />
+      </Main>
+    </div>
+  );
 }
 
-export default App
+export default App;
+
+function Main({ children }) {
+  return <div className="main">{children}</div>;
+}
